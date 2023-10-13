@@ -88,3 +88,99 @@ The data is generatd in csv format. The columns are as follows:
 - CEFR_level: CEFR level of the text
 - work_type: From where text has been taken, for example exam, essay, etc.
 - year: Year of the exam
+
+## MMLL - EFCAMDAT
+
+[MMLL - EFCAMDAT](https://ef-lab.mmll.cam.ac.uk/)
+
+### Description
+
+Efcamdat is an open access corpus consisting of writings of learners of English worldwide submitted to Englishtown, the online school of EF Education First1.
+It is a collaborative project between the Dept. of Theoretical and Applied Linguistics, University of Cambridge and EF Education First, developed with the support of the Isaac Newton Trust, Trinity College. The corpus was first released in July 2013. 
+Skill level of writing evaluated to common standards:
+
+![Skill level of writing evaluated to common standards](./../img/ef_common_standard.png)
+
+Main prompt dataset contain 406062 rows.
+Alternative prompt dataset contain 317220 rows.
+
+### File Structure
+
+The data is presented in excel format. The columns are as follows:
+
+- writing_id: contains a unique identifier for each text.
+- cefr: It contains the text’s CEFR level as an ordered factor, derived from the proficiency level based on the EFCAMDAT’s guidelines
+- cefr_numeric: It contains the text’s CEFR level, converted into a numeric variable.
+- level: It contains the proficiency level of the task, based on the levels used in EF’s school(1-15)
+- grade: It contains the grade that the text received from the teacher.
+- wordcount: It contains the number of words in the text, measured using a custom function available in the scripts.
+- mtld: It contains the measure of textual lexical diversity for that text, as calculated using the lexical_diversity library in Python on the corrected version of the text. **read the caveats about using MTLD to calculate the lexical diversity of texts that are as short as those in the sample.**
+- text: It contains the text for that task.
+- text_corrected: It contains a version of the text with spelling that was corrected using the
+Speller function in Python’s autocorrect library.
+
+### Citation
+
+```[bibtex]
+@article{shatz2020refining,
+  author = {Shatz, Itamar},
+  title = {Refining and modifying the EFCAMDAT: Lessons from creating a new corpus from an existing large-scale English learner language database},
+  journal = {International Journal of Learner Corpus Research},
+  volume = {6},
+  number = {2},
+  pages = {220--236},
+  year = {2020},
+  doi = {10.1075/ijlcr.20009.sha},
+  url = {https://doi.org/10.1075/ijlcr.20009.sha}
+}
+
+@inproceedings{EFCAMDAT,
+  title = {EFCAMDAT},
+  author = {Y. Huang, A. Murakami,T. Alexopoulou, A.Korhonen},
+  booktitle = {Proceedings of the 31st Second Language Research Forum (SLRF)},
+  journal = {Dependency parsing of learner English, International Journal of Corpus Linguistics}
+  address = {Carnegie Mellon},
+  publisher = {Cascadilla Press},
+  pages = {1-15},
+  year = {2018},
+}
+
+@article{geertzen2013automatic,
+  author    = {J. Geertzen and T. Alexopoulou and A. Korhonen},
+  title     = {Automatic linguistic annotation of large scale L2 databases: The EF-Cambridge Open Language Database},
+  year      = {2013}
+}
+```
+
+## NEWSELA - Article Corpus
+
+The Newsela dataset is a rich collection of news articles covering a wide range of topics from reputable sources. It provide multiple versions of each article, including simplified versions tailored to different reading levels.
+
+This dataset contain 10786 entries and 7 columns.
+
+### File Structure
+
+The data is presented in dataframe format. The columns are as follows:
+
+- language: specifying article language -- en or es.
+- slug: unique name for each article.
+- title: It contains the text’s CEFR level, converted into a numeric variable.
+- grade_level: value between 2.0 (lowest) and 12.0 (highest)
+- version: For each slug, there is 1 original article and 4 or 5 simplified versions. Version 0 is the original, and 5 or 6 is the simplest.
+- filename: File name in the articles folder.
+- content: It contains the text for that article.
+
+@article{xu-etal-2015-problems,
+    title = "Problems in Current Text Simplification Research: New Data Can Help",
+    author = "Xu, Wei  and
+      Callison-Burch, Chris  and
+      Napoles, Courtney",
+    journal = "Transactions of the Association for Computational Linguistics",
+    volume = "3",
+    year = "2015",
+    address = "Cambridge, MA",
+    publisher = "MIT Press",
+    url = "https://aclanthology.org/Q15-1021",
+    doi = "10.1162/tacl_a_00139",
+    pages = "283--297",
+}
