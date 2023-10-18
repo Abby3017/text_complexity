@@ -184,3 +184,30 @@ The data is presented in dataframe format. The columns are as follows:
     doi = "10.1162/tacl_a_00139",
     pages = "283--297",
 }
+
+## Asset Dataset
+
+ASSET is a dataset for evaluating Sentence Simplification systems with multiple rewriting transformations. The corpus is composed of 2000 validation and 359 test original sentences.
+
+### File Structure
+
+The data is presented in dataframe format. The columns are as follows:
+
+- original: Original sentence
+- simplified: Simplified sentence in the same language by 10 authors.
+
+@inproceedings{alva-manchego_asset_2020,
+  address = {Online},
+  title = {{ASSET}: {A} {Dataset} for {Tuning} and {Evaluation} of {Sentence} {Simplification} {Models} with {Multiple} {Rewriting} {Transformations}},
+  shorttitle = {{ASSET}},
+  url = {https://aclanthology.org/2020.acl-main.424},
+  doi = {10.18653/v1/2020.acl-main.424},
+  urldate = {2023-10-18},
+  booktitle = {Proceedings of the 58th {Annual} {Meeting} of the {Association} for {Computational} {Linguistics}},
+  publisher = {Association for Computational Linguistics},
+  author = {Alva-Manchego, Fernando and Martin, Louis and Bordes, Antoine and Scarton, Carolina and Sagot, Benoît and Specia, Lucia},
+  month = jul,
+  year = {2020},
+  pages = {4668--4679},
+}
+
