@@ -109,7 +109,7 @@ Alternative prompt dataset contain 317220 rows.
 The data is presented in excel format. The columns are as follows:
 
 - writing_id: contains a unique identifier for each text.
-- cefr: It contains the text’s CEFR level as an ordered factor, derived from the proficiency level based on the EFCAMDAT’s guidelines
+- cefr: It contains the text’s CEFR level as an ordered factor, derived from the proficiency level based on the EFCAMDAT’s guidelines. It has 5 level — A1, A2, B1, B2 and C1.
 - cefr_numeric: It contains the text’s CEFR level, converted into a numeric variable.
 - level: It contains the proficiency level of the task, based on the levels used in EF’s school(1-15)
 - grade: It contains the grade that the text received from the teacher.
