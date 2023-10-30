@@ -96,7 +96,7 @@ The data is generatd in csv format. The columns are as follows:
 ### Description
 
 Efcamdat is an open access corpus consisting of writings of learners of English worldwide submitted to Englishtown, the online school of EF Education First1.
-It is a collaborative project between the Dept. of Theoretical and Applied Linguistics, University of Cambridge and EF Education First, developed with the support of the Isaac Newton Trust, Trinity College. The corpus was first released in July 2013. 
+It is a collaborative project between the Dept. of Theoretical and Applied Linguistics, University of Cambridge and EF Education First, developed with the support of the Isaac Newton Trust, Trinity College. The corpus was first released in July 2013.
 Skill level of writing evaluated to common standards:
 
 ![Skill level of writing evaluated to common standards](./../img/ef_common_standard.png)
