@@ -106,16 +106,14 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
     # Start training loop
     for epoch in tqdm(range(1, EPOCHS+1), desc="Epochs Loop"):
         start_time = time.perf_counter()
-        h = model.init_hidden(batch_size, device)
         total_loss = 0.
         counter = 0
         for i, data in enumerate(tqdm(train_loader)):
             inputs, labels = data
             counter += 1
-            h = h.data
             model.zero_grad()
 
-            out, h = model(inputs.to(device).float(), h)
+            out, _ = model(inputs.to(device).float())
             loss = criterion(out.squeeze(), labels.to(device).float())
             loss.backward()
             optimizer.step()
@@ -135,11 +133,9 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
         val_losses = []
         val_loss_min = np.Inf
         model.eval()
-        h = model.init_hidden(batch_size, device)
         for i, data in enumerate(tqdm(val_loader)):
             inputs, labels = data
-            h = h.data
-            output, h = model(inputs.to(device).float(), h)
+            output, _ = model(inputs.to(device).float())
             val_loss = criterion(output.squeeze(), labels.to(
                 device).float())
             val_losses.append(val_loss.item())

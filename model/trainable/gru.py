@@ -14,8 +14,8 @@ class GRUNet(nn.Module):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input, hidden):
-        out, hidden = self.gru(input, hidden)
+    def forward(self, input):
+        out, hidden = self.gru(input)
         linear_out = self.linear(out[:, -1, :])
         linear_out = self.relu(linear_out)
         linear_out = self.linear1(linear_out)
