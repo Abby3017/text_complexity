@@ -3,6 +3,7 @@ import logging
 import os
 import pdb
 import pickle
+import random
 import time
 
 import matplotlib.pyplot as plt
@@ -29,6 +30,10 @@ model_path = model_folder + "/gru.pt"
 log_path = model_folder + "/run.log"
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
+
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
 
 
 def load_vectors(fname):
