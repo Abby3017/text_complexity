@@ -116,7 +116,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
         for i, data in enumerate(tqdm(train_loader)):
             inputs, labels = data
             counter += 1
-            model.zero_grad()
+            optimizer.zero_grad()
 
             out, _ = model(inputs.to(device).float())
             loss = criterion(out.squeeze(), labels.to(device).float())
@@ -151,6 +151,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
                         'optimizer_state_dict': optimizer.state_dict(),
                         'model_state_dict': model.state_dict(),
                         'loss': val_loss,
+                        'batch_size': batch_size,
                         }, model_path)
         val_loss_epochs.append(val_loss)
         print("Validation Loss: {}".format(val_loss))
@@ -172,7 +173,7 @@ def evaluate(model, test_loader, batch_size=20):
         h = h.data
         out, h = model(inputs.to(device).float(), h)
         outputs.extend(out.squeeze().cpu().detach().numpy().tolist())
-        targets.extend(labels.sq.numpy().tolist())
+        targets.extend(labels.tolist())
     print("Evaluation Time: {}".format(str(time.perf_counter()-start_time)))
     outputs = np.array(outputs)
     targets = np.array(targets)
