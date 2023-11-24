@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import pdb
 import pickle
 import random
 import time
@@ -162,16 +161,14 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
     return model, training_loss_epochs, val_loss_epochs
 
 
-def evaluate(model, test_loader, batch_size=20):
+def evaluate(model, test_loader):
     model.eval()
     outputs = []
     targets = []
-    h = model.init_hidden(batch_size, device)
     start_time = time.perf_counter()
     for i, data in enumerate(tqdm(test_loader)):
         inputs, labels = data
-        h = h.data
-        out, h = model(inputs.to(device).float(), h)
+        out = model(inputs.to(device).float())
         outputs.extend(out.squeeze().cpu().detach().numpy().tolist())
         targets.extend(labels.tolist())
     print("Evaluation Time: {}".format(str(time.perf_counter()-start_time)))
