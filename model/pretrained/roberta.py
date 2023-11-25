@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoModel, AutoTokenizer, Trainer, TrainingArguments
+from transformers import AutoModel
 
 
 class RobertaEfcamdatDataset(Dataset):
@@ -30,6 +30,7 @@ class RobertaEfcamdatDataset(Dataset):
         mask = inputs['attention_mask']
         token_type_ids = inputs['token_type_ids']
         return {
+            'text': text,
             'ids': torch.tensor(ids, dtype=torch.long),
             'mask': torch.tensor(mask, dtype=torch.long),
             'token_type_ids': torch.tensor(token_type_ids, dtype=torch.long),
@@ -38,12 +39,12 @@ class RobertaEfcamdatDataset(Dataset):
 
 
 class RobertaNet(torch.nn.Module):
-    def __init__(self, model_name, output_size=200):
+    def __init__(self, model_name, hidden_size=768, output_size=200):
         super(RobertaNet, self).__init__()
         self.model_name = model_name
         self.model = AutoModel.from_pretrained(
-            model_name, cache_dir="/cluster/work/sachan/abhinav/model/pretrained/roberta_cache", resume_download=True)
-        self.linear = nn.Linear(2*256, output_size)
+            model_name, cache_dir="/cluster/work/sachan/abhinav/model/roberta/cache", resume_download=True)
+        self.linear = nn.Linear(hidden_size, output_size)
         self.linear1 = nn.Linear(output_size, 1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -51,7 +52,6 @@ class RobertaNet(torch.nn.Module):
     def forward(self, ids, mask, token_type_ids):
         output = self.model(input_ids=ids, attention_mask=mask,
                             token_type_ids=token_type_ids)
-        # check shape here
         hidden_state = output[0]
         pooler = hidden_state[:, 0]
         linear_out = self.linear(pooler)
@@ -59,7 +59,3 @@ class RobertaNet(torch.nn.Module):
         linear_out = self.linear1(linear_out)
         res = self.sigmoid(linear_out) * 5
         return res
-
-
-if __name__ == "__main__":
-    pass
