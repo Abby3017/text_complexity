@@ -96,7 +96,7 @@ def save_plots(train_loss, val_loss):
     plt.savefig(model_folder + '/loss.png')
 
 
-def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, EPOCHS=10):
+def train(train_loader, val_loader, learn_rate, batch_size=128, hidden_dim=256, EPOCHS=10):
 
     input_dim = next(iter(train_loader))[0].shape[2]
     output_dim = 200
@@ -134,6 +134,8 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
             if counter % 200 == 0:
                 print("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
                     epoch, counter, len(train_loader), total_loss/counter))
+                logging.info("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
+                    epoch, counter, len(train_loader), total_loss/counter))
         current_time = time.perf_counter()
         writer.add_scalar('Loss/train', total_loss /
                           len(train_loader), epoch)
@@ -163,6 +165,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
                         'model_state_dict': model.state_dict(),
                         'loss': val_loss,
                         'batch_size': batch_size,
+                        'learn_rate': learn_rate,
                         }, model_path)
         val_loss_epochs.append(val_loss)
         print("Validation Loss: {}".format(val_loss))
@@ -214,14 +217,14 @@ if __name__ == '__main__':
     fasttext = load_vectors(fasttext_model)
     print('fasttext loaded')
     train_dataset = EfcamdatDataset(train_df, fasttext)
-    train_dataloader = DataLoader(train_dataset, batch_size=20,
+    train_dataloader = DataLoader(train_dataset, batch_size=256,
                                   shuffle=True, collate_fn=collate_fn)
     val_dataset = EfcamdatDataset(val_df, fasttext)
-    val_dataloader = DataLoader(val_dataset, batch_size=20,
+    val_dataloader = DataLoader(val_dataset, batch_size=256,
                                 shuffle=True, collate_fn=collate_fn)
 
     model, training_loss_epochs, val_loss_epochs = train(
-        train_dataloader, val_dataloader, learn_rate=0.001, batch_size=20, hidden_dim=256, EPOCHS=2)
+        train_dataloader, val_dataloader, learn_rate=0.0001, batch_size=256, hidden_dim=256, EPOCHS=40)
     save_plots(training_loss_epochs, val_loss_epochs)
 
     data = {'training_loss_epochs': training_loss_epochs,
