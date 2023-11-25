@@ -2,17 +2,27 @@ import logging
 import os
 import random
 import time
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
+from tqdm.auto import tqdm
+from transformers import AutoModel, AutoTokenizer
+
+from text_complexity.model.pretrained.roberta import (RobertaEfcamdatDataset,
+                                                      RobertaNet)
 
 MAX_LEN = 256
 TRAIN_BATCH_SIZE = 256
 VALID_BATCH_SIZE = 128
 LEARNING_RATE = 1e-05
 EPOCHS = 30
+MODEL_NAME = 'roberta-base'
+
+torch.cuda.init()
+torch.cuda.empty_cache()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 folder_path = "/cluster/work/sachan/abhinav/model/roberta/"
@@ -21,10 +31,16 @@ model_folder = os.path.join(folder_path, model_folder_name)
 if not os.path.exists(model_folder):
     os.makedirs(model_folder)
 
-model_path = model_folder + "/gru.pt"
-log_path = model_folder + "/run.log"
+model_path = model_folder + "/gru_" + \
+    datetime.now().strftime("%Y%m%d_%H%M%S") + ".pt"
+
+log_path = model_folder + "/run_" + \
+    datetime.now().strftime("%Y%m%d_%H%M%S") + ".log"
+tb_model_path = model_folder + "/tensorboard_" + \
+    datetime.now().strftime("%Y%m%d_%H%M%S") + "/"
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
+writer = SummaryWriter(log_dir=tb_model_path)
 
 
 def set_random_seed(random_seed):
@@ -41,7 +57,11 @@ def train(model, train_loader, valid_loader, optimizer, criterion, tokenizer):
     train_loss = []
     valid_loss = []
     best_valid_loss = float('Inf')
+    for name, param in model.model.named_parameters():
+        param.requires_grad = False
     model.train()
+    writer.add_graph(model, (next(iter(train_loader))['ids'], next(
+        iter(train_loader))['mask'], next(iter(train_loader))['token_type_ids']))
     for epoch in range(EPOCHS):
         epoch_train_loss = 0
         epoch_valid_loss = 0
@@ -58,9 +78,12 @@ def train(model, train_loader, valid_loader, optimizer, criterion, tokenizer):
             if i % 200 == 0:
                 print("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
                     epoch, i, len(train_loader), epoch_train_loss/i))
+                logging.info("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
+                    epoch, i, len(train_loader), epoch_train_loss/i))
+                writer.add_scalar(
+                    'Training Loss', epoch_train_loss/200, epoch*len(train_loader)+i)
             loss.backward()
             optimizer.step()
-            scheduler.step()
         epoch_train_loss = epoch_train_loss / len(train_loader)
         train_loss.append(epoch_train_loss)
         model.eval()
@@ -134,3 +157,18 @@ if __name__ == "__main__":
         '/cluster/work/sachan/abhinav/text_complexity/data/val_pruned_efcamdat.csv')
     print('val_df shape', val_df.shape)
     print('training and validation data loaded')
+    tokenizer = AutoTokenizer.from_pretrained(
+        MODEL_NAME, cache_dir="/cluster/work/sachan/abhinav/model/roberta/cache", resume_download=True)
+    print('tokenizer loaded')
+    train_dataset = RobertaEfcamdatDataset(
+        train_df, tokenizer, MAX_LEN)
+    val_dataset = RobertaEfcamdatDataset(
+        val_df, tokenizer, MAX_LEN)
+    print('val_dataset & train_dataset loaded')
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=TRAIN_BATCH_SIZE, shuffle=True, num_workers=4)
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=VALID_BATCH_SIZE, shuffle=True, num_workers=4)
+    print('train and val dataloader loaded')
+
+    model = RobertaNet(MODEL_NAME)
