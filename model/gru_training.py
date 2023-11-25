@@ -23,18 +23,18 @@ from text_complexity.model.trainable.gru import GRUNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 folder_path = "/cluster/work/sachan/abhinav/model/gru/"
-model_folder_name = 'efcamdat_run1'
+model_folder_name = 'efcamdat_run3'
 model_folder = os.path.join(folder_path, model_folder_name)
 if not os.path.exists(model_folder):
     os.makedirs(model_folder)
 
 model_path = model_folder + "/gru_" + \
-    datetime.now.strftime("%Y%m%d_%H%M%S") + ".pt"
+    datetime.now().strftime("%Y%m%d_%H%M%S") + ".pt"
 
 log_path = model_folder + "/run_" + \
-    datetime.now.strftime("%Y%m%d_%H%M%S") + ".log"
+    datetime.now().strftime("%Y%m%d_%H%M%S") + ".log"
 tb_model_path = model_folder + "/tensorboard_" + \
-    datetime.now.strftime("%Y%m%d_%H%M%S") + "/"
+    datetime.now().strftime("%Y%m%d_%H%M%S") + "/"
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
 writer = SummaryWriter(log_dir=tb_model_path)
@@ -42,6 +42,9 @@ writer = SummaryWriter(log_dir=tb_model_path)
 torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
+
+BATCH_SIZE = 128
+LEARNING_RATE = 0.0001
 
 
 def load_vectors(fname):
@@ -217,14 +220,14 @@ if __name__ == '__main__':
     fasttext = load_vectors(fasttext_model)
     print('fasttext loaded')
     train_dataset = EfcamdatDataset(train_df, fasttext)
-    train_dataloader = DataLoader(train_dataset, batch_size=256,
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE,
                                   shuffle=True, collate_fn=collate_fn)
     val_dataset = EfcamdatDataset(val_df, fasttext)
-    val_dataloader = DataLoader(val_dataset, batch_size=256,
+    val_dataloader = DataLoader(val_dataset, batch_size=BATCH_SIZE,
                                 shuffle=True, collate_fn=collate_fn)
 
     model, training_loss_epochs, val_loss_epochs = train(
-        train_dataloader, val_dataloader, learn_rate=0.0001, batch_size=256, hidden_dim=256, EPOCHS=40)
+        train_dataloader, val_dataloader, learn_rate=LEARNING_RATE, batch_size=BATCH_SIZE, hidden_dim=256, EPOCHS=40)
     save_plots(training_loss_epochs, val_loss_epochs)
 
     data = {'training_loss_epochs': training_loss_epochs,
