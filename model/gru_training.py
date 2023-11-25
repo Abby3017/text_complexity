@@ -1,9 +1,11 @@
 import io
 import logging
 import os
+import pdb
 import pickle
 import random
 import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +14,7 @@ import torch
 import torch.nn as nn
 from nltk.tokenize import word_tokenize
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 from text_complexity.model.trainable.gru import GRUNet
@@ -25,10 +28,16 @@ model_folder = os.path.join(folder_path, model_folder_name)
 if not os.path.exists(model_folder):
     os.makedirs(model_folder)
 
-model_path = model_folder + "/gru.pt"
-log_path = model_folder + "/run.log"
+model_path = model_folder + "/gru_" + \
+    datetime.now.strftime("%Y%m%d_%H%M%S") + ".pt"
+
+log_path = model_folder + "/run_" + \
+    datetime.now.strftime("%Y%m%d_%H%M%S") + ".log"
+tb_model_path = model_folder + "/tensorboard_" + \
+    datetime.now.strftime("%Y%m%d_%H%M%S") + "/"
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
+writer = SummaryWriter(log_dir=tb_model_path)
 
 torch.manual_seed(42)
 np.random.seed(42)
@@ -126,6 +135,8 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
                 print("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
                     epoch, counter, len(train_loader), total_loss/counter))
         current_time = time.perf_counter()
+        writer.add_scalar('Loss/train', total_loss /
+                          len(train_loader), epoch)
         training_loss_epochs.append(total_loss/len(train_loader))
         print("Epoch {}/{} Done, Total Loss: {}".format(epoch,
               EPOCHS, total_loss/len(train_loader)))
@@ -144,6 +155,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=20, hidden_dim=256, E
                 device).float())
             val_losses.append(val_loss.item())
         val_loss = np.mean(val_losses)
+        writer.add_scalar('Loss/val', val_loss, epoch)
         if val_loss < val_loss_min:
             val_loss_min = val_loss
             torch.save({'epoch': epoch,
@@ -209,7 +221,7 @@ if __name__ == '__main__':
                                 shuffle=True, collate_fn=collate_fn)
 
     model, training_loss_epochs, val_loss_epochs = train(
-        train_dataloader, val_dataloader, learn_rate=0.001, batch_size=20, hidden_dim=256, EPOCHS=1)
+        train_dataloader, val_dataloader, learn_rate=0.001, batch_size=20, hidden_dim=256, EPOCHS=2)
     save_plots(training_loss_epochs, val_loss_epochs)
 
     data = {'training_loss_epochs': training_loss_epochs,
