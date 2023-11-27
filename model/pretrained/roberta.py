@@ -53,7 +53,12 @@ class RobertaNet(torch.nn.Module):
         output = self.model(input_ids=ids, attention_mask=mask,
                             token_type_ids=token_type_ids)
         hidden_state = output[0]
-        pooler = hidden_state[:, 0]
+        # output[0] ==  [1,256, 768] -- last hidden state
+        # output[0].squeeze() == [256, 768]
+        # output[0][:, 0] == [1, 768]
+        # output[1] ==  [1,768] -- pooler output
+        # output[2] == all hidden states [1,256, 768]
+        pooler = hidden_state.squeeze()
         linear_out = self.linear(pooler)
         linear_out = self.relu(linear_out)
         linear_out = self.linear1(linear_out)
