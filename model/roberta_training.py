@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import random
 import time
 from datetime import datetime
@@ -9,14 +10,15 @@ import pandas as pd
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoTokenizer
 
 from text_complexity.model.pretrained.roberta import (RobertaEfcamdatDataset,
                                                       RobertaNet)
+from text_complexity.utils.plot_util import save_plots
 
 MAX_LEN = 256
-TRAIN_BATCH_SIZE = 256
-VALID_BATCH_SIZE = 128
+TRAIN_BATCH_SIZE = 64
+VALID_BATCH_SIZE = 64
 LEARNING_RATE = 1e-05
 EPOCHS = 30
 MODEL_NAME = 'roberta-base'
@@ -24,10 +26,16 @@ MODEL_NAME = 'roberta-base'
 torch.cuda.init()
 torch.cuda.empty_cache()
 
+# after each login
+# module load gcc/8.2.0 python_gpu/3.10.4 eth_proxy hdf5/1.10.1
+# srun -n 1 --cpus-per-task=4 --time=4:00:00 --job-name="learn1" --mem-per-cpu=16384 --gpus=2 --gres=gpumem:8128 --pty python3 text_complexity/model/roberta_training.py
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 folder_path = "/cluster/work/sachan/abhinav/model/roberta/"
 model_folder_name = 'efcamdat_run1'
 model_folder = os.path.join(folder_path, model_folder_name)
+
 if not os.path.exists(model_folder):
     os.makedirs(model_folder)
 
@@ -41,6 +49,8 @@ tb_model_path = model_folder + "/tensorboard_" + \
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
 writer = SummaryWriter(log_dir=tb_model_path)
+logging.info("device: " + str(device))
+print("device: " + str(device))
 
 
 def set_random_seed(random_seed):
@@ -57,14 +67,17 @@ def train(model, train_loader, valid_loader, optimizer, criterion, tokenizer):
     train_loss = []
     valid_loss = []
     best_valid_loss = float('Inf')
-    for name, param in model.model.named_parameters():
-        param.requires_grad = False
-    model.train()
-    writer.add_graph(model, (next(iter(train_loader))['ids'], next(
-        iter(train_loader))['mask'], next(iter(train_loader))['token_type_ids']))
+    # for name, param in model.model.named_parameters():
+    #     param.requires_grad = False
+    pytorch_total_params = sum(p.numel() for p in model.parameters())
+    print("Total number of trainable parameters: ", pytorch_total_params)
+    logging.info("Total number of trainable parameters: " +
+                 str(pytorch_total_params))
     for epoch in range(EPOCHS):
+        model.train()
         epoch_train_loss = 0
         epoch_valid_loss = 0
+        start_time = time.perf_counter()
         for i, batch in enumerate(tqdm(train_loader)):
             ids = batch['ids'].to(device, dtype=torch.long)
             mask = batch['mask'].to(device, dtype=torch.long)
@@ -76,14 +89,19 @@ def train(model, train_loader, valid_loader, optimizer, criterion, tokenizer):
             loss = criterion(output.squeeze(), target.to(device).float())
             epoch_train_loss += loss.item()
             if i % 200 == 0:
-                print("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
-                    epoch, i, len(train_loader), epoch_train_loss/i))
-                logging.info("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
-                    epoch, i, len(train_loader), epoch_train_loss/i))
+                print("Epoch {}......Step: {}/{}....... Average Training Loss for Epoch: {}".format(
+                    epoch, i+1, len(train_loader), epoch_train_loss/(i+1)))
+                logging.info("Epoch {}......Step: {}/{}....... Average Training Loss for Epoch: {}".format(
+                    epoch, i+1, len(train_loader), epoch_train_loss/(i+1)))
                 writer.add_scalar(
-                    'Training Loss', epoch_train_loss/200, epoch*len(train_loader)+i)
+                    'Training Loss', epoch_train_loss/200, epoch*len(train_loader)+(i+1))
             loss.backward()
             optimizer.step()
+        current_time = time.perf_counter()
+        print("Total Time Elapsed: {} seconds".format(
+            str(current_time-start_time)))
+        logging.info("Total Time Elapsed: {} seconds".format(
+            str(current_time-start_time)))
         epoch_train_loss = epoch_train_loss / len(train_loader)
         train_loss.append(epoch_train_loss)
         model.eval()
@@ -95,11 +113,13 @@ def train(model, train_loader, valid_loader, optimizer, criterion, tokenizer):
                     device, dtype=torch.long)
                 target = batch['labels'].to(device, dtype=torch.float)
                 output = model(ids, mask, token_type_ids)
-                loss = criterion(output, target.unsqueeze(1))
+                loss = criterion(output.squeeze(), target.to(device))
                 epoch_valid_loss += loss.item()
                 if i % 200 == 0:
-                    print("Epoch {}......Step: {}/{}....... Average Loss for Epoch: {}".format(
-                        epoch, i, len(valid_loader), epoch_valid_loss/i))
+                    print("Epoch {}......Step: {}/{}....... Average Validation Loss for Epoch: {}".format(
+                        epoch, i, len(valid_loader), epoch_valid_loss/(i+1)))
+                    logging.info("Epoch {}......Step: {}/{}....... Average Validation Loss for Epoch: {}".format(
+                        epoch, i, len(valid_loader), epoch_valid_loss/(i+1)))
             epoch_valid_loss = epoch_valid_loss / len(valid_loader)
             valid_loss.append(epoch_valid_loss)
             if epoch_valid_loss < best_valid_loss:
@@ -172,3 +192,18 @@ if __name__ == "__main__":
     print('train and val dataloader loaded')
 
     model = RobertaNet(MODEL_NAME)
+    writer.add_graph(model, (next(iter(train_loader))['ids'], next(
+        iter(train_loader))['mask'], next(iter(train_loader))['token_type_ids']))
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    criterion = torch.nn.MSELoss()
+    logging.info("Model Loaded & Training Started")
+    train_loss, val_loss = train(model=model, train_loader=train_loader, valid_loader=val_loader,
+                                 optimizer=optimizer, criterion=criterion, tokenizer=tokenizer)
+
+    save_plots(train_loss, val_loss, model_folder)
+
+    data = {'training_loss_epochs': train_loss,
+            'val_loss_epochs': val_loss}
+    with open(model_folder + '/losses.pickle', 'wb') as f:
+        pickle.dump(data, f)
