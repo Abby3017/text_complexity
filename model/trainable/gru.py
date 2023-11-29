@@ -19,7 +19,7 @@ class GRUNet(nn.Module):
         linear_out = self.linear(out[:, -1, :])
         linear_out = self.relu(linear_out)
         linear_out = self.linear1(linear_out)
-        res = self.sigmoid(linear_out) * 5
+        res = self.sigmoid(linear_out) * 6
         return res, hidden
 
     def init_hidden(self, batch_size, device, num_directions=2):

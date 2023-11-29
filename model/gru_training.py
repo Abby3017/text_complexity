@@ -38,6 +38,8 @@ tb_model_path = model_folder + "/tensorboard_" + \
 
 logging.basicConfig(filename=log_path, level=logging.INFO)
 writer = SummaryWriter(log_dir=tb_model_path)
+logging.info("device: " + str(device))
+print("device: " + str(device))
 
 torch.manual_seed(42)
 np.random.seed(42)
@@ -114,13 +116,13 @@ def train(train_loader, val_loader, learn_rate, batch_size=128, hidden_dim=256, 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
 
-    model.train()
     print("Starting Training of GRU model")
     epoch_times = []
     val_loss_epochs = []
     training_loss_epochs = []
     # Start training loop
     for epoch in tqdm(range(1, EPOCHS+1), desc="Epochs Loop"):
+        model.train()
         start_time = time.perf_counter()
         total_loss = 0.
         counter = 0
