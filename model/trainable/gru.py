@@ -1,5 +1,9 @@
+import io
+
 import torch
 import torch.nn as nn
+from nltk.tokenize import word_tokenize
+from torch.utils.data import Dataset
 
 
 class GRUNet(nn.Module):
@@ -27,3 +31,37 @@ class GRUNet(nn.Module):
         hidden = weight.new(self.n_layers * num_directions, batch_size,
                             self.hidden_size).zero_().to(device)
         return hidden
+
+
+class EfcamdatDataset(Dataset):
+    def __init__(self, data, emb):
+        self.data = data
+        self.emb = emb
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        text = self.data.iloc[idx]['sentences']
+        words = word_tokenize(text)
+        word_ids = []
+        for word in words:
+            if word in self.emb:
+                word_ids.append(torch.tensor(list(self.emb[word])))
+            else:
+                word_ids.append(torch.tensor(list(self.emb["UNK"])))
+        words = torch.stack(word_ids)
+        target = torch.tensor(self.data.iloc[idx]['cefr_numeric'])
+        return words, target, text
+
+# https://discuss.pytorch.org/t/how-to-create-a-dataloader-with-variable-size-input/8278/3
+
+
+def load_vectors(fname):
+    fin = io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore')
+    n, d = map(int, fin.readline().split())
+    data = {}
+    for line in fin:
+        tokens = line.rstrip().split(' ')
+        data[tokens[0]] = [float(x) for x in tokens[1:]]
+    return data
