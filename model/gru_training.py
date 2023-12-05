@@ -17,13 +17,13 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
-from text_complexity.model.trainable.gru import GRUNet
+from text_complexity.model.trainable.gru import EfcamdatDataset, GRUNet
 
 # srun -n 1 --cpus-per-task=4 --time=4:00:00 --job-name="learn1" --mem-per-cpu=16384 --pty python3 text_complexity/model/gru_training.py
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 folder_path = "/cluster/work/sachan/abhinav/model/gru/"
-model_folder_name = 'efcamdat_run3'
+model_folder_name = 'efcamdat_run1'
 model_folder = os.path.join(folder_path, model_folder_name)
 if not os.path.exists(model_folder):
     os.makedirs(model_folder)
@@ -36,7 +36,7 @@ log_path = model_folder + "/run_" + \
 tb_model_path = model_folder + "/tensorboard_" + \
     datetime.now().strftime("%Y%m%d_%H%M%S") + "/"
 
-logging.basicConfig(filename=log_path, level=logging.INFO)
+logging.basicConfig(filename=log_path, level=logging.INFO, force=True)
 writer = SummaryWriter(log_dir=tb_model_path)
 logging.info("device: " + str(device))
 print("device: " + str(device))
@@ -57,28 +57,6 @@ def load_vectors(fname):
         tokens = line.rstrip().split(' ')
         data[tokens[0]] = [float(x) for x in tokens[1:]]
     return data
-
-
-class EfcamdatDataset(Dataset):
-    def __init__(self, data, emb):
-        self.data = data
-        self.emb = emb
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        text = self.data.iloc[idx]['sentences']
-        words = word_tokenize(text)
-        word_ids = []
-        for word in words:
-            if word in self.emb:
-                word_ids.append(torch.tensor(list(self.emb[word])))
-            else:
-                word_ids.append(torch.tensor(list(self.emb["UNK"])))
-        words = torch.stack(word_ids)
-        target = torch.tensor(self.data.iloc[idx]['cefr_numeric'])
-        return words, target, text
 
 # https://discuss.pytorch.org/t/how-to-create-a-dataloader-with-variable-size-input/8278/3
 
@@ -121,6 +99,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=128, hidden_dim=256, 
     val_loss_epochs = []
     training_loss_epochs = []
     # Start training loop
+    val_loss_min = np.Inf
     for epoch in tqdm(range(1, EPOCHS+1), desc="Epochs Loop"):
         model.train()
         start_time = time.perf_counter()
@@ -153,7 +132,7 @@ def train(train_loader, val_loader, learn_rate, batch_size=128, hidden_dim=256, 
             str(current_time-start_time)))
         epoch_times.append(current_time-start_time)
         val_losses = []
-        val_loss_min = np.Inf
+
         model.eval()
         for i, data in enumerate(tqdm(val_loader)):
             inputs, labels = data
@@ -181,34 +160,6 @@ def train(train_loader, val_loader, learn_rate, batch_size=128, hidden_dim=256, 
     return model, training_loss_epochs, val_loss_epochs
 
 
-def evaluate(model, test_loader):
-    model.eval()
-    outputs = []
-    targets = []
-    start_time = time.perf_counter()
-    for i, data in enumerate(tqdm(test_loader)):
-        inputs, labels = data
-        out = model(inputs.to(device).float())
-        outputs.extend(out.squeeze().cpu().detach().numpy().tolist())
-        targets.extend(labels.tolist())
-    print("Evaluation Time: {}".format(str(time.perf_counter()-start_time)))
-    outputs = np.array(outputs)
-    targets = np.array(targets)
-
-    errors = abs(outputs-targets)
-    print("Mean Absolute Error: {}".format(np.mean(errors)))
-    logging.info("Mean Absolute Error: {}".format(np.mean(errors)))
-    print("Median Absolute Error: {}".format(np.median(errors)))
-    print("Standard Deviation of Absolute Error: {}".format(np.std(errors)))
-
-    mse = np.mean((outputs-targets)**2)
-    rmse = np.sqrt(mse)
-    print("RMSE: {}".format(rmse))
-    logging.info("RMSE: {}".format(rmse))
-    print("MSE: {}".format(mse))
-    logging.info("MSE: {}".format(mse))
-
-
 if __name__ == '__main__':
 
     train_df = pd.read_csv(
@@ -221,6 +172,7 @@ if __name__ == '__main__':
     fasttext_model = '/cluster/work/sachan/abhinav/text_complexity/embedding/wiki-news-300d-1M.vec'
     fasttext = load_vectors(fasttext_model)
     print('fasttext loaded')
+
     train_dataset = EfcamdatDataset(train_df, fasttext)
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE,
                                   shuffle=True, collate_fn=collate_fn)
@@ -229,7 +181,7 @@ if __name__ == '__main__':
                                 shuffle=True, collate_fn=collate_fn)
 
     model, training_loss_epochs, val_loss_epochs = train(
-        train_dataloader, val_dataloader, learn_rate=LEARNING_RATE, batch_size=BATCH_SIZE, hidden_dim=256, EPOCHS=40)
+        train_dataloader, val_dataloader, learn_rate=LEARNING_RATE, batch_size=BATCH_SIZE, hidden_dim=256, EPOCHS=30)
     save_plots(training_loss_epochs, val_loss_epochs)
 
     data = {'training_loss_epochs': training_loss_epochs,
