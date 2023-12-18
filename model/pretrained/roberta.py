@@ -52,7 +52,8 @@ class RobertaNet(torch.nn.Module):
     def forward(self, ids, mask, token_type_ids):
         output = self.model(input_ids=ids, attention_mask=mask,
                             token_type_ids=token_type_ids)
-        hidden_state = output[1]
+        hidden_state = output.pooler_output
+        # hidden_state = hidden_state.last_hidden_state
         # output[0] ==  [128,256, 768] -- last hidden state
         # output[0].squeeze() == [256, 768]
         # output[0][:, 0] == [1, 768]
