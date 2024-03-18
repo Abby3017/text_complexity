@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -67,11 +67,15 @@ def evaluate(model, test_loader):
     logging.info("MSE: {}".format(mse))
     # find pearson correlation coefficient and p-value of target and output
     pearson_corr, p_value = pearsonr(outputs, targets)
+    # find spearman correlation coefficient and p-value of target and output
+    spearman_corr, _ = spearmanr(outputs, targets)
 
     print("Pearson Correlation Coefficient: {}".format(pearson_corr))
     print("P-value: {}".format(p_value))
     logging.info("Pearson Correlation Coefficient: {}".format(pearson_corr))
     logging.info("P-value: {}".format(p_value))
+    print("Spearman Correlation Coefficient: {}".format(spearman_corr))
+    logging.info("Spearman Correlation Coefficient: {}".format(spearman_corr))
 
 
 if __name__ == '__main__':
@@ -94,5 +98,12 @@ if __name__ == '__main__':
     checkpoint = torch.load(
         '/cluster/work/sachan/abhinav/model/gru/efcamdat_run1/gru_20231129_161208.pt')
     model.load_state_dict(checkpoint['model_state_dict'])
+
+    logging.basicConfig(filename=log_path, level=logging.INFO, force=True)
+    logging.info("device: " + str(device))
+    logging.info("checkpoint model best val loss {}".format(
+        checkpoint["loss"]))
+    logging.info("checkpoint model best epoch {}".format(
+        checkpoint["epoch"]))
     model.to(device)
     evaluate(model, test_dataloader)

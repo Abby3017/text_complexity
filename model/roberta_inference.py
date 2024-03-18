@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 
