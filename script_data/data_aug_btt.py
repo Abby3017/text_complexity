@@ -1,3 +1,4 @@
+import itertools
 import pdb
 
 import pandas as pd
@@ -36,7 +37,7 @@ bleu = BLEU()
 #                          framework='pt',)
 
 train_25_aug = pd.read_csv(
-    "/cluster/work/sachan/abhinav/text_complexity/data/syn_aug_125.csv")
+    "/cluster/work/sachan/abhinav/text_complexity/exp_data/additional_0.75.csv")
 
 train_25_aug = train_25_aug[['writing_id', 'sentences', 'cefr_numeric']]
 
@@ -111,6 +112,7 @@ model = AutoModelForSeq2SeqLM.from_pretrained(
 model.to(device)
 
 data_rows = []
+data_rows_all = []
 for _, row in train_25_aug.iterrows():
     sentence = row['sentences']
     ref = [[sentence]]
@@ -120,6 +122,7 @@ for _, row in train_25_aug.iterrows():
     second_highest_bleu = float('-inf')
     highest_lang_sent = second_highest_lang_sent = ''
     highest_lang = second_highest_lang = ''
+    data_all_lang = []
     for translation_lang in list_of_translation_lang:
         sentence_tokens = model.generate(
             **input_tokenize_eng, forced_bos_token_id=tokenizer_eng.lang_code_to_id[translation_lang], max_length=200)
@@ -134,6 +137,7 @@ for _, row in train_25_aug.iterrows():
         eng_translated_sentence = tokenizer_eng.batch_decode(
             eng_translated_tokens, skip_special_tokens=True)[0]
         candidate = [eng_translated_sentence]
+        data_all_lang.extend([eng_translated_sentence])
         bleu_score = bleu.corpus_score(candidate, ref)
         bleu_score = bleu_score.score
         if bleu_score > highest_bleu:
@@ -156,35 +160,21 @@ for _, row in train_25_aug.iterrows():
 
     data = [row['writing_id'], sentence, row['cefr_numeric'], highest_lang_sent,
             highest_lang, second_highest_lang_sent, second_highest_lang]
+    # data_all_lang = list(itertools.chain.from_iterable(data_all_lang))
+    data_all = [row['writing_id'], sentence, row['cefr_numeric']]
+    data_all.extend(data_all_lang)
     data_rows.append(data)
-    pdb.set_trace()
+    data_rows_all.append(data_all)
 data_df = pd.DataFrame(data_rows, columns=['writing_id', 'sentences', 'cefr_numeric',
                        'highest_lang_sent', 'highest_lang', 'second_highest_lang_sent', 'second_highest_lang'])
 
+data_all_df = pd.DataFrame(data_rows_all, columns=['writing_id', 'sentences', 'cefr_numeric',
+                                                   'zho_sent', 'spa_sent', 'arb_sent', 'fra_sent', 'deu_sent', 'rus_sent', 'jpn_sent', 'por_sent', 'hin_sent', 'ita_sent'])
+
 data_df.to_csv(
-    '/cluster/work/sachan/abhinav/text_complexity/data/translated_sentences.csv', index=False)
+    '/cluster/work/sachan/abhinav/text_complexity/exp_data/translation/additional0.75_bleu.csv', index=False)
 
-# article = "Information about training algorithms, parameters, fairness constraints or other applied approaches, and features."
-# ref = [[article]]
-# inputs = tokenizer_eng(article, return_tensors="pt")
-# inputs.to(device)
+data_all_df.to_csv(
+    '/cluster/work/sachan/abhinav/text_complexity/exp_data/translation/additional0.75_all.csv', index=False)
 
-# for translation_lang in list_of_translation_lang:
-#     translated_tokens = model.generate(
-#         **inputs, forced_bos_token_id=tokenizer_eng.lang_code_to_id[translation_lang], max_length=100)
-#     print(translation_lang)
-#     print(tokenizer_eng.batch_decode(
-#         translated_tokens, skip_special_tokens=True)[0])
-#     translated_article = tokenizer_eng.batch_decode(
-#         translated_tokens, skip_special_tokens=True)[0]
-#     candidate = [translated_article]
-#     bleu_score = bleu.corpus_score(candidate, ref)
-#     print(bleu_score.score)
-#     print("\n")
-#     pdb.set_trace()
-# tt = tokenizer_zho(translated_article, return_tensors="pt")
-# tokenizer_zho.batch_decode(tt, skip_special_tokens=True)[0]
-# aa = model.generate(**translated_tokens,
-#                     forced_bos_token_id=tokenizer_eng.lang_code_to_id['eng_Latn'], max_length=30)
-# tokenizer_zho.batch_decode(aa, skip_special_tokens=True)[0]
 # srun -n 1 --cpus-per-task=4 --time=4:00:00 --job-name="learn1" --mem-per-cpu=16384 --gpus=1 --gres=gpumem:24G --pty python3 text_complexity/script_data/data_aug_btt.py
